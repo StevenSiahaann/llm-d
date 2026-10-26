@@ -14,18 +14,14 @@ patches:
           spec:
             containers:
               - name: modelserver
-                # Same script as ../base/patch-vllm.yaml (keep in sync), with the
-                # model loaded from its copy on the node-local hostPath.
-                # --served-model-name keeps the API model name unchanged.
-                args:
-                  - |
-                    exec vllm serve \
-                      /model-cache/models/Qwen/Qwen3-32B \
-                      --served-model-name=Qwen/Qwen3-32B \
-                      --tensor-parallel-size=2 \
-                      --kv-transfer-config \
-                      '{"kv_connector":"OffloadingConnector","kv_role":"kv_both","kv_connector_extra_config":{"cpu_bytes_to_use":322122547200}}' \
-                      --shutdown-timeout=45
+                # Run the base's script (passed in args, so $0 here) with the
+                # model's Hub ID swapped for its copy on the node-local hostPath.
+                # --served-model-name keeps the API model name unchanged, and
+                # args keep the Hub ID, which CI reads as the model name.
+                command:
+                  - /bin/bash
+                  - -c
+                  - m=Qwen/Qwen3-32B && exec /bin/bash -c "${0/"$m "//model-cache/models/$m --served-model-name $m }"
                 volumeMounts:
                   # Model weights must already be on every node under
                   # /var/model-cache/models/<org>/<model> (provisioned outside this guide).
